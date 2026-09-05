@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "bracketSpacing": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "arrowParens": "avoid",
+  "printWidth": 120,
+  "tabWidth": 2,
+  "semi": true,
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    "dist",
+    "pnpm-lock.yaml",
+    ".env",
+    "app",
+    "**/*.swift",
+    "postman",
+    "server/drizzle",
+    "**/.test-cache"
+  ]
+}
