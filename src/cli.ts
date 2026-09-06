@@ -1,6 +1,9 @@
 import childProcess from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { parseArgs as nodeParseArgs } from 'node:util';
+
+import { z } from 'zod';
 
 import { CliUsageError, fail } from './errors.ts';
 
@@ -24,43 +27,51 @@ Wrapper options:
   --help          Show this help.`;
 }
 
+const knownOptionNames = new Set(['base', 'help', 'list', 'name']);
+
+const parsedValuesSchema = z.object({
+  base: z.string().min(1).optional(),
+  help: z.boolean().optional(),
+  list: z.boolean().optional(),
+  name: z.string().min(1).optional(),
+});
+
 export function parseArgs(args: string[]): Options {
-  const options: Options = { codexArgs: [], helpRequested: false, listOnly: false };
-  for (let index = 0; index < args.length; index += 1) {
-    const argument = args[index];
-    if (argument === '--') {
-      options.codexArgs.push(...args.slice(index + 1));
-      break;
-    }
-    if (argument === '--help' || argument === '-h') {
-      options.helpRequested = true;
-      break;
-    }
-    if (argument === '--list') {
-      options.listOnly = true;
-      continue;
-    }
-    if (argument === '--name' || argument === '--base') {
-      const value = args[index + 1];
-      if (value === undefined || value === '') {
-        throw new CliUsageError(`${argument} requires a value`);
-      }
-      if (argument === '--name') options.name = value;
-      else options.base = value;
-      index += 1;
-      continue;
-    }
-    if (argument.startsWith('--name=')) {
-      options.name = argument.slice(7);
-      continue;
-    }
-    if (argument.startsWith('--base=')) {
-      options.base = argument.slice(7);
-      continue;
-    }
-    options.codexArgs.push(argument);
+  const { values, tokens } = nodeParseArgs({
+    allowPositionals: true,
+    args,
+    options: {
+      base: { type: 'string' },
+      help: { short: 'h', type: 'boolean' },
+      list: { type: 'boolean' },
+      name: { type: 'string' },
+    },
+    strict: false,
+    tokens: true,
+  });
+
+  const result = parsedValuesSchema.safeParse(values);
+  if (!result.success) {
+    const flag = result.error.issues[0]?.path[0];
+    throw new CliUsageError(`--${String(flag)} requires a value`);
   }
-  return options;
+
+  const codexArgs: string[] = [];
+  for (const token of tokens) {
+    if (token.kind === 'positional') {
+      codexArgs.push(token.value);
+    } else if (token.kind === 'option' && !knownOptionNames.has(token.name)) {
+      codexArgs.push(token.inlineValue ? `${token.rawName}=${token.value}` : token.rawName);
+    }
+  }
+
+  return {
+    base: result.data.base,
+    codexArgs,
+    helpRequested: result.data.help ?? false,
+    listOnly: result.data.list ?? false,
+    name: result.data.name,
+  };
 }
 
 function git(repoRoot: string, args: string[], allowFailure = false): string | undefined {

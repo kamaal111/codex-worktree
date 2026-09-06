@@ -94,3 +94,11 @@ test('forwards arguments after the delimiter without parsing them', () => {
     name: 'review',
   });
 });
+
+test('forwards unrecognized flags to codexArgs', () => {
+  expect(parseArgs(['--unknown-flag', '--other=value'])).toEqual({
+    codexArgs: ['--unknown-flag', '--other=value'],
+    helpRequested: false,
+    listOnly: false,
+  });
+});
