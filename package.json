@@ -1,6 +1,6 @@
 {
-  "name": "codex-worktree",
-  "version": "0.1.0",
+  "name": "@kamaalio/codex-worktree",
+  "version": "<CONTROLLED_THROUGH_CI>",
   "description": "Run Codex CLI sessions in isolated Git worktrees.",
   "keywords": [
     "codex",
@@ -13,6 +13,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kamaal111/codex-worktree.git"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "bin": {
     "codex-worktree": "bin/run.mjs"
