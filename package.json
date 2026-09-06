@@ -2,7 +2,18 @@
   "name": "codex-worktree",
   "version": "0.1.0",
   "description": "Run Codex CLI sessions in isolated Git worktrees.",
+  "keywords": [
+    "codex",
+    "git",
+    "worktree",
+    "cli"
+  ],
   "license": "MIT",
+  "author": "Kamaal Farah",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kamaal111/codex-worktree.git"
+  },
   "bin": {
     "codex-worktree": "bin/run.mjs"
   },
@@ -22,7 +33,8 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "quality": "pnpm run lint && pnpm run format:check && pnpm run typecheck",
-    "prepack": "pnpm run build"
+    "prepack": "pnpm run build",
+    "release": "node ./scripts/publish.ts"
   },
   "devDependencies": {
     "@oxlint/plugins": "^1.81.0",
