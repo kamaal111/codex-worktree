@@ -6,19 +6,19 @@ are preserved after Codex exits, so uncommitted work is never auto-deleted.
 ## Install
 
 ```sh
-pnpm add --global ./tools/codex-worktree
-```
-
-After publishing:
-
-```sh
-pnpm add --global codex-worktree
+pnpm add --global @kamaalio/codex-worktree
 ```
 
 ## Use
 
 ```sh
 codex-worktree --name fix-bridge -- "Fix the bridge retry logic"
+```
+
+Or without installing, via `npx`:
+
+```sh
+npx @kamaalio/codex-worktree --name fix-bridge -- "Fix the bridge retry logic"
 ```
 
 The first run creates `.codex-worktrees/fix-bridge` on branch
