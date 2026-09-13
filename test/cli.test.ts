@@ -36,7 +36,7 @@ test('creates, reuses, and lists a named worktree', async () => {
     );
     await fs.chmod(fakeCodex, 0o755);
     const environment = { ...process.env, CODEX_BIN: fakeCodex };
-    const expectedPath = path.join(await fs.realpath(repository), '.codex-worktrees', 'test');
+    const expectedPath = path.join(await fs.realpath(repository), '.agents', 'worktrees', 'test');
 
     const first = run(process.execPath, [cli, '--name', 'test', '--', 'hello'], repository, environment);
     expect(first.status).toBe(0);

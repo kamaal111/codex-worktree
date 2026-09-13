@@ -16,7 +16,7 @@ const { CliUsageError, fail } = await import('../src/errors.ts');
 const { parseArgs, run, usage } = await import('../src/cli.ts');
 
 const root = '/repository';
-const directory = `${root}/.codex-worktrees`;
+const directory = `${root}/.agents/worktrees`;
 
 function successfulGit(stdout = '') {
   return { status: 0, stdout, stderr: '' };
