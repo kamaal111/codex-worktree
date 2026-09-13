@@ -29,6 +29,9 @@ are passed unchanged to Codex:
 codex-worktree --name review -- exec --full-auto "Review this project"
 ```
 
+Run `codex-worktree` without arguments to start an interactive Codex session.
+Use `codex-worktree --version` to print the installed version.
+
 New worktrees use `origin/HEAD` if available, otherwise `HEAD`. Choose another
 base with `--base REF`. List managed worktrees with `codex-worktree --list`.
 

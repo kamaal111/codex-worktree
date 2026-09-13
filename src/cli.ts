@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { parseArgs as nodeParseArgs } from 'node:util';
 
+import packageJSON from '../package.json' with { type: 'json' };
 import { z } from 'zod';
 
 import { CliUsageError, fail } from './errors.ts';
@@ -13,38 +14,45 @@ interface Options {
   helpRequested: boolean;
   listOnly: boolean;
   name?: string;
+  versionRequested: boolean;
 }
 
 const namePattern = /^[A-Za-z0-9._-]+$/;
 
 export function usage(): string {
-  return `Usage: codex-worktree [wrapper options] [--] [codex arguments]
+  return `Usage: codex-worktree [wrapper options] [-- [codex arguments]]
 
 Wrapper options:
   --name NAME     Reuse or create .agents/worktrees/NAME on branch codex/NAME.
   --base REF      Base a new worktree on REF (default: origin/HEAD, then HEAD).
   --list          List worktrees managed by this wrapper.
-  --help          Show this help.`;
+  --help          Show this help.
+  --version       Print the installed version.`;
 }
 
-const knownOptionNames = new Set(['base', 'help', 'list', 'name']);
+const knownOptionNames = new Set(['base', 'help', 'list', 'name', 'version']);
 
 const parsedValuesSchema = z.object({
   base: z.string().min(1).optional(),
   help: z.boolean().optional(),
   list: z.boolean().optional(),
   name: z.string().min(1).optional(),
+  version: z.boolean().optional(),
 });
 
 export function parseArgs(args: string[]): Options {
+  const separatorIndex = args.indexOf('--');
+  const wrapperArgs = separatorIndex === -1 ? args : args.slice(0, separatorIndex);
+  const codexArgs = separatorIndex === -1 ? [] : args.slice(separatorIndex + 1);
   const { values, tokens } = nodeParseArgs({
     allowPositionals: true,
-    args,
+    args: wrapperArgs,
     options: {
       base: { type: 'string' },
       help: { short: 'h', type: 'boolean' },
       list: { type: 'boolean' },
       name: { type: 'string' },
+      version: { type: 'boolean' },
     },
     strict: false,
     tokens: true,
@@ -56,12 +64,11 @@ export function parseArgs(args: string[]): Options {
     throw new CliUsageError(`--${String(flag)} requires a value`);
   }
 
-  const codexArgs: string[] = [];
   for (const token of tokens) {
     if (token.kind === 'positional') {
-      codexArgs.push(token.value);
+      throw new CliUsageError('Codex arguments must follow --');
     } else if (token.kind === 'option' && !knownOptionNames.has(token.name)) {
-      codexArgs.push(token.inlineValue ? `${token.rawName}=${token.value}` : token.rawName);
+      throw new CliUsageError(`unknown option: ${token.rawName}`);
     }
   }
 
@@ -71,6 +78,7 @@ export function parseArgs(args: string[]): Options {
     helpRequested: result.data.help ?? false,
     listOnly: result.data.list ?? false,
     name: result.data.name,
+    versionRequested: result.data.version ?? false,
   };
 }
 
@@ -119,6 +127,10 @@ async function execute(argv: string[]): Promise<void> {
     console.log(usage());
     return;
   }
+  if (options.versionRequested) {
+    console.log(`codex-worktree ${packageJSON.version}`);
+    return;
+  }
 
   const root = await repoRoot();
   const directory = path.join(root, '.agents', 'worktrees');
@@ -163,6 +175,7 @@ export async function run(argv: string[] = process.argv.slice(2)): Promise<void>
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${message}\n`);
+    if (error instanceof CliUsageError) process.stderr.write(`${usage()}\n`);
     process.exitCode = error instanceof CliUsageError ? 2 : 1;
   }
 }

@@ -6,8 +6,6 @@ import url from 'node:url';
 
 import { expect, test } from 'vitest';
 
-import { parseArgs } from '../src/cli.ts';
-
 const packageRoot = path.resolve(url.fileURLToPath(new URL('..', import.meta.url)));
 const cli = path.join(packageRoot, 'bin', 'run.mjs');
 
@@ -86,19 +84,60 @@ test('reports missing wrapper option values as usage errors', async () => {
   }
 });
 
-test('forwards arguments after the delimiter without parsing them', () => {
-  expect(parseArgs(['--name', 'review', '--', '--help'])).toEqual({
-    codexArgs: ['--help'],
-    helpRequested: false,
-    listOnly: false,
-    name: 'review',
-  });
+test('rejects pre-delimiter arguments without creating a worktree', async () => {
+  const repository = await createRepository();
+  try {
+    const fakeCodex = path.join(repository, 'fake-codex.mjs');
+    await fs.writeFile(fakeCodex, '#!/usr/bin/env node\nprocess.exit(99)\n');
+    await fs.chmod(fakeCodex, 0o755);
+    const environment = { ...process.env, CODEX_BIN: fakeCodex };
+
+    const unknownFlag = run(process.execPath, [cli, '--git-stuff'], repository, environment);
+    const bareArgument = run(process.execPath, [cli, 'gitstuff'], repository, environment);
+
+    expect(unknownFlag.status).toBe(2);
+    expect(unknownFlag.stderr).toContain('unknown option: --git-stuff');
+    expect(bareArgument.status).toBe(2);
+    expect(bareArgument.stderr).toContain('Codex arguments must follow --');
+    expect(run('git', ['worktree', 'list', '--porcelain'], repository).stdout).not.toContain('.agents/worktrees');
+    expect(run('git', ['show-ref', '--verify', '--quiet', 'refs/heads/codex'], repository).status).toBe(1);
+    await expect(fs.stat(path.join(repository, '.agents'))).rejects.toThrow();
+  } finally {
+    await fs.rm(repository, { force: true, recursive: true });
+  }
 });
 
-test('forwards unrecognized flags to codexArgs', () => {
-  expect(parseArgs(['--unknown-flag', '--other=value'])).toEqual({
-    codexArgs: ['--unknown-flag', '--other=value'],
-    helpRequested: false,
-    listOnly: false,
-  });
+test('forwards delimited arguments unchanged', async () => {
+  const repository = await createRepository();
+  try {
+    const fakeCodex = path.join(repository, 'fake-codex.mjs');
+    await fs.writeFile(fakeCodex, '#!/usr/bin/env node\nconsole.log(process.argv.slice(2).join("|"))\n');
+    await fs.chmod(fakeCodex, 0o755);
+    const environment = { ...process.env, CODEX_BIN: fakeCodex };
+
+    const result = run(
+      process.execPath,
+      [cli, '--name', 'delimiter', '--', '--help', '--', 'gitstuff'],
+      repository,
+      environment,
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('--help|--|gitstuff\n');
+  } finally {
+    await fs.rm(repository, { force: true, recursive: true });
+  }
+});
+
+test('prints the version outside a Git repository', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-worktree-version-'));
+  try {
+    const result = run(process.execPath, [cli, '--version'], directory);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('codex-worktree <CONTROLLED_THROUGH_CI>\n');
+    expect(result.stderr).toBe('');
+  } finally {
+    await fs.rm(directory, { force: true, recursive: true });
+  }
 });
