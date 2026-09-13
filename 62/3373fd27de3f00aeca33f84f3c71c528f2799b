@@ -1,0 +1,27 @@
+src/cli.ts
+  s_120863052fb468::t_4648c1b616c046 24,124
+test/cli-unit.test.ts
+  s_120863052fb468::t_4648c1b616c046 19
+test/cli.test.ts
+  s_120863052fb468::t_4648c1b616c046 39
+README.md
+  s_120863052fb468::t_4648c1b616c046 24,35
+.gitignore
+  s_120863052fb468::t_4648c1b616c046 183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "623373fd27de3f00aeca33f84f3c71c528f2799b",
+  "prompts": {},
+  "sessions": {
+    "s_120863052fb468": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a09b1a-3a7d-7873-9497-286360ed1702",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
