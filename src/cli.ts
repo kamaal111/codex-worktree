@@ -21,7 +21,7 @@ export function usage(): string {
   return `Usage: codex-worktree [wrapper options] [--] [codex arguments]
 
 Wrapper options:
-  --name NAME     Reuse or create .codex-worktrees/NAME on branch codex/NAME.
+  --name NAME     Reuse or create .agents/worktrees/NAME on branch codex/NAME.
   --base REF      Base a new worktree on REF (default: origin/HEAD, then HEAD).
   --list          List worktrees managed by this wrapper.
   --help          Show this help.`;
@@ -121,7 +121,7 @@ async function execute(argv: string[]): Promise<void> {
   }
 
   const root = await repoRoot();
-  const directory = path.join(root, '.codex-worktrees');
+  const directory = path.join(root, '.agents', 'worktrees');
   const worktrees = git(root, ['worktree', 'list', '--porcelain']) || '';
   if (options.listOnly) {
     const prefix = `worktree ${directory}/`;
