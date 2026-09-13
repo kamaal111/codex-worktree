@@ -1,0 +1,14 @@
+.gitignore
+  h_66e824d23aae73 183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0fd4cdfa3eb402ab1d95fd7063a663bea21c2efb",
+  "prompts": {},
+  "humans": {
+    "h_66e824d23aae73": {
+      "author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
