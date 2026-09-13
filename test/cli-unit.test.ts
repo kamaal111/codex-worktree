@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
+import packageJSON from '../package.json' with { type: 'json' };
+
 const mocks = vi.hoisted(() => ({
   mkdir: vi.fn(),
   realpath: vi.fn(),
@@ -44,12 +46,13 @@ describe('argument parsing', () => {
   });
 
   test('parses every wrapper option form', () => {
-    expect(parseArgs(['--list', '--name', 'review', '--base', 'main', 'exec'])).toEqual({
+    expect(parseArgs(['--list', '--name', 'review', '--base', 'main', '--', 'exec'])).toEqual({
       base: 'main',
       codexArgs: ['exec'],
       helpRequested: false,
       listOnly: true,
       name: 'review',
+      versionRequested: false,
     });
     expect(parseArgs(['--name=review', '--base=main'])).toEqual({
       base: 'main',
@@ -57,13 +60,29 @@ describe('argument parsing', () => {
       helpRequested: false,
       listOnly: false,
       name: 'review',
+      versionRequested: false,
     });
-    expect(parseArgs(['-h'])).toMatchObject({ helpRequested: true });
+    expect(parseArgs(['-h'])).toMatchObject({ helpRequested: true, versionRequested: false });
+  });
+
+  test('forwards only arguments after the delimiter', () => {
+    expect(parseArgs([])).toMatchObject({ codexArgs: [] });
+    expect(parseArgs(['--name', 'review', '--', '--help', '--', 'gitstuff'])).toMatchObject({
+      codexArgs: ['--help', '--', 'gitstuff'],
+      name: 'review',
+    });
   });
 
   test('rejects absent and empty option values', () => {
     expect(() => parseArgs(['--name'])).toThrow('--name requires a value');
     expect(() => parseArgs(['--base', ''])).toThrow('--base requires a value');
+  });
+
+  test('rejects arguments before the delimiter', () => {
+    expect(() => parseArgs(['--git-stuff'])).toThrow('unknown option: --git-stuff');
+    expect(() => parseArgs(['--git-stuff=value'])).toThrow('unknown option: --git-stuff');
+    expect(() => parseArgs(['gitstuff'])).toThrow('Codex arguments must follow --');
+    expect(() => parseArgs(['--name', 'review', 'gitstuff'])).toThrow('Codex arguments must follow --');
   });
 });
 
@@ -82,6 +101,30 @@ describe('run', () => {
 
     expect(output).toHaveBeenCalledWith(usage());
     expect(mocks.spawnSync).not.toHaveBeenCalled();
+  });
+
+  test('prints the version without accessing Git', async () => {
+    const output = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    await run(['--version']);
+
+    expect(output).toHaveBeenCalledWith(`codex-worktree ${packageJSON.version}`);
+    expect(mocks.spawnSync).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  test('reports pre-delimiter arguments as usage errors without accessing Git', async () => {
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    await run(['--git-stuff']);
+    await run(['gitstuff']);
+
+    expect(stderr).toHaveBeenCalledWith('codex-worktree: unknown option: --git-stuff\n');
+    expect(stderr).toHaveBeenCalledWith('codex-worktree: Codex arguments must follow --\n');
+    expect(stderr).toHaveBeenCalledWith(`${usage()}\n`);
+    expect(mocks.mkdir).not.toHaveBeenCalled();
+    expect(mocks.spawnSync).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(2);
   });
 
   test('lists managed worktrees', async () => {
@@ -198,6 +241,7 @@ describe('run', () => {
     await run(['--name', 'bad/name']);
 
     expect(stderr).toHaveBeenCalledWith(expect.stringContaining('worktree names may contain only'));
+    expect(stderr).toHaveBeenCalledWith(`${usage()}\n`);
     expect(process.exitCode).toBe(2);
 
     setupRepository();
